@@ -1,0 +1,130 @@
+
+fn:
+nop
+
+#prologue
+ADDIU $sp, $sp, -32
+SW $ra, 28($sp)
+nop
+SW $fp,	24($sp)
+nop
+SW $a0, 4($sp)
+nop
+SW $a1, 8($sp)
+nop
+SW $a2, 12($sp)
+nop
+SW $s0, 16($sp)
+nop
+ADDIU $fp, $sp, 28
+
+#store 1 in temp
+ADDIU $t1, $0, 1
+
+#if (n < size && log_array[n] != 0)
+
+#BGE $a0, $a2, if2
+SLT $t6, $a0, $a2
+BEQ $t6, $0, if2
+nop
+
+#creating offset for log_array
+SLL $t3, $a0, 2
+ADDU $t3, $a1, $t3
+
+#loading element in log_array[n]
+LW $t4, 0($t3)
+nop
+
+BEQ $t4, $0, if2
+nop
+
+ADDIU $v0, $t4, 0
+
+j epilogue
+nop
+
+#if n == 1
+if2:
+nop
+
+BNE $a0, $t1, else
+nop
+j epilogue
+nop
+
+# if ((n % 2) == 0)
+else:
+nop
+
+ADDIU $s0, $a0, 0
+
+SLL $t2, $a0, 31
+BNE $t2, $0, inside_else
+nop
+SRA $a0, $a0, 1
+
+jal fn
+nop
+
+ADDIU $a0, $s0, 0
+
+ADDIU $v0, $v0, 1
+
+j last_if
+nop
+
+inside_else:
+nop
+
+ADDIU $s0, $a0, 0
+
+#store argument in temp
+ADDIU $t0, $a0, 0
+
+ADDU $a0, $a0, $t0
+ADDU $a0, $a0, $t0
+ADDIU $a0, $a0, 1
+
+jal fn
+nop
+
+ADDIU $a0, $s0, 0
+
+ADDIU $v0, $v0, 1
+
+last_if:
+nop
+
+#if n < size
+
+#BGE $a0, $a2, epilogue
+SLT $t7, $a0, $a2
+BEQ $t7, $0, epilogue
+
+#creating offset for log_array
+SLL $t5, $a0, 2
+ADDU $t5, $a1, $t5
+
+#storing element in log_array[n] to register
+SW $v0, 0($t5)
+nop
+
+epilogue:
+nop
+
+LW $a0, 4($sp)
+nop
+LW $a1, 8($sp)
+nop
+LW $a2, 12($sp)
+nop
+LW $s0, 16($sp)
+nop
+LW $fp,	24($sp)
+nop
+LW $ra,	28($sp)
+nop
+ADDIU $sp, $sp, 32
+jr $ra
+nop

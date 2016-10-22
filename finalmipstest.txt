@@ -1,0 +1,161 @@
+#MIPS commands for the processor
+#this code was put into Danny Qiu's MIPS interpreter and checked against our processor in Logism
+
+
+#Testing Jump (If jump works properly, register 1 should have 23 inside
+j label
+nop
+label:
+nop
+ADDIU $1, $0, 23
+
+
+#Testing JAL and JR (Register 2 should have 34 and register 3 should have 45)
+jal jal_label
+nop
+ADDIU $2, $0, 34
+jal_label:
+nop
+ADDIU $3, $0, 45
+jr $ra
+nop
+
+
+#Testing JALR (Register 6 should have 7)
+j secret_exit
+ADDIU $6, $0, 7
+j jalr_exit
+nop
+secret_exit:
+ADDIU $5, $0, 48
+jalr $4, $5
+nop
+jalr_exit:
+
+
+#Testing BEQ (Register 7 should contain 7, not 10)
+ADDIU $7, $0, 7
+BEQ $6, $7, b_eq
+nop
+ADDIU $7, $0, 10
+b_eq:
+
+
+#Testing BNE (Register 8 should contain 0, not -20)
+BNE $6, $7, b_ne
+nop
+ADDIU $8, $0, -20
+b_ne:
+
+
+#Testing BLEZ (Register 9 should contain 0, not 99, Register 11 should contain 0, not 88)
+ADDIU $10, $0, -1
+#Testing 0
+BLEZ $8, blez_branch #PC: 104
+nop
+ADDIU $9, $0, 99
+blez_branch:
+#Testing less than
+BLEZ $10, blez_branch2 #PC: 116
+nop
+ADDIU $11, $0, 88
+blez_branch2:
+
+
+#Testing BGTZ (Register 7 should still contain 7, not 64)
+BGTZ $7, bgtz_branch
+nop
+ADDIU $7, $0, 64
+bgtz_branch:
+
+
+#Testing BLTZ (Register 7 should still contain 7, not 46)
+BLTZ $10, bltz_branch
+nop
+ADDIU $7, $0, 46
+bltz_branch:
+
+
+#Testing BGEZ (Register 7 should still contain 7, not 44, Register 9 should still contain 0, not 96)
+#Testing 0
+BGEZ $8, bgez_branch
+nop
+ADDIU $7, $0, 44
+bgez_branch:
+BGEZ $7, bgez_branch2
+nop
+ADDIU $9, $0, 96
+bgez_branch2:
+
+
+#Testing memory load/store (little endian), also testing storing and loading hazards
+#Register 17 should contain 254, 18 should have -2, 30 should have 2, and 24 should also have 2
+ADDIU $16, $0, -2
+ADDIU $19, $0, 2
+SB $16, 20($0)
+LBU $17, 20($0)
+LB $18, 20($0)
+SW $19, 24($0)
+LW $30, 24($0)
+
+#storing and loading in registers with offsets that aren’t multiples of 4
+SW $17, 53($0)
+LW $21, 53($0)
+SB $22, 55($0)
+LB $23, 55($0)
+LBU $24, 55($0)
+
+
+#I-type instructions
+
+addiu $1, $0, 5		#add 5 to register 0, store in r1
+addiu $2, $1, 5		#add 5 to register 1, store in r2: should EX/MEM forward (in the end, r2 should have 10)
+addiu $3, $1, 5		#add 5 to register 1, store in r3: should MEM/WB forward (r3 will have 10)
+
+andi $4, $1, 1		#andi r1 with immediate value 0 (r4 should have value 1)
+			#had to make the register falling edge so that it writes before it reads (third type of hazard)
+ori $5, $1, 0		#ori r1 with immediate value 0 (r5 should have value 5)
+xori $6, $1, 1		#xori r1 with immediate value 1 (r6 should have value 4)
+slti $7, $1, -6		#if r1 is less than -6 (which it's not), set value in r7 to 1 (so r7 should be 0)
+sltiu $8, $1, -6	#this is unsigned, so -6 is actually a big number, so -6 is "greater than" 5, so r8 should be 1
+lui $9, 1		#should get 0x10000 in the register 9
+
+
+#R-type instructions
+sll $10, $1, 1		#shift r1 by 1, should get 0xa in r10
+srl $11, $10, 1		#shift r11 (make sure forwarding for r10 works) right by 1, should get 5 in r11
+addiu $12, $0, 0x8000	#put 0x8000 into addiu
+sra $12, $12, 1		#shift r12 by 1 arithmetically 
+srl $13, $12, 1		#just to make sure, $13 and $12 should be different since one is arithmetic and one is logical (but both are right shifts)
+
+addu $14, $12, $1	#add r12 and r1, put in 1
+subu $15, $14, $12	#subtract r12 from r14 (should get value from r1)
+and $16, $14, $1	#next four instructions are basic logic operators
+or $17, $14, $1		#used the same registers for easy binary comparisons
+xor $18, $14, $1
+nor $19, $14, $1
+
+addiu $20, $0, -6
+addiu $21, $0, 5
+
+slt $22, $21, $20	#using the same principles as slti and sltiu above, compare the same number signed and unsigned to one value
+sltu $23, $21, $20	#r22 should be 0 while r23 should be 1: 5 is greater than -6 but not greater than the unsigned version of -6 in binary
+
+#sllv, srlv, srav
+
+sllv $24, $12, $21	#variable shifts (confirmed with MIPS interpreter)
+srlv $25, $12, $21
+srav $26, $12, $21
+
+movn $27, $1, $0	#if rt is 0 (which it is) then do nothing
+movn $28, $1, $1	#if rt is 0 (which it's not) then put r1's value into r28
+
+movz $29, $1, $0	#the reverse - put r1's value into r29 now
+movz $30, $1, $1	#do nothing
+
+#an example of a triple false hazard
+ADDIU $0, $0, 1
+ADDIU $1, $0, 1 
+ADDIU $2, $0, 1
+ADDIU $3, $0, 1
+
